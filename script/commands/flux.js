@@ -1,4 +1,6 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 module.exports.config = {
   name: "flux",
@@ -13,12 +15,20 @@ module.exports.config = {
   cooldowns: 3
 };
 
+// Helper function to fetch a stream from a URL using axios
+const getStreamFromURL = async (url) => {
+  const response = await axios.get(url, { responseType: "stream" });
+  return response.data; // Return the stream
+};
+
 module.exports.run = async ({ api, event, args }) => {
   try {
     const prompt = args.join(" ");
-
+    
     // Ensure prompt is provided
     if (!prompt) return api.sendMessage("Please provide a prompt for the image.", event.threadID, event.messageID);
+
+    // Send an initial response indicating that the request is being processed
     const loadingMessage = await api.sendMessage("Wait a moment... 😁", event.threadID, event.messageID);
     api.setMessageReaction("😘", event.messageID, (err) => {}, true);
 
@@ -36,10 +46,12 @@ module.exports.run = async ({ api, event, args }) => {
     // Unsend the initial "Wait" message
     await api.unsendMessage(loadingMessage.messageID);
 
-    // Send the generated image
+    // Fetch the image as a stream and send it
+    const imageStream = await getStreamFromURL(data.image);
+    
     api.sendMessage({
       body: "Here's your image!",
-      attachment: await global.utils.getStreamFromURL(data.image), // Ensure this method is implemented or replaced
+      attachment: imageStream,
     }, event.threadID, event.messageID);
 
   } catch (e) {
