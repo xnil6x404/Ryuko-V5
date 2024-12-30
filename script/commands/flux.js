@@ -1,5 +1,7 @@
+const axios = require("axios");
+
 module.exports.config = {
-  name: `flux`,
+  name: "flux",
   version: "1.1.0",
   permission: 0,
   credits: "xnil",
@@ -7,37 +9,41 @@ module.exports.config = {
   prefix: false,
   premium: true,
   category: "without prefix",
-  usage: `flux prompt`,
-  cooldowns: 3,
-  dependency: {
-    "axios": ""
-  }
+  usage: "flux prompt",
+  cooldowns: 3
 };
+
 module.exports.run = async ({ api, event, args }) => {
-  const axios = require('axios');
-  const fs = require('fs-extra');
-  const { threadID, messageID } = event;
-  const nazrul = args.join(" ");
-  
-  if (!nazrul) return api.sendMessage("𝐏𝐥𝐞𝐚𝐬𝐞 𝐏𝐫𝐨𝐯𝐢𝐝𝐞 𝐚 𝐏𝐫𝐨𝐦𝐩𝐭 𝐅𝐨𝐫 𝐓𝐡𝐞 𝐢𝐦𝐚𝐠𝐞....", threadID, messageID);
-  
   try {
-    api.sendMessage("𝐏𝐥𝐞𝐚𝐬𝐞 𝐖𝐚𝐢𝐭 𝐁𝐚𝐛𝐲...😘", threadID, messageID);
-    const path = __dirname + `/cache/tina.png`;
+    const prompt = args.join(" ");
 
-    const response = await axios.get(`https://xnilnew404.onrender.com/xnil/fluxpro?prompt=${nazrul}`, { responseType: "arraybuffer" });
+    // Ensure prompt is provided
+    if (!prompt) return api.sendMessage("Please provide a prompt for the image.", event.threadID, event.messageID);
+    const loadingMessage = await api.sendMessage("Wait a moment... 😁", event.threadID, event.messageID);
+    api.setMessageReaction("😘", event.messageID, (err) => {}, true);
 
-    if (!response.data.image) {
-      return api.sendMessage("Error: Image generation failed. Please try again later.", threadID, messageID);
+    // Fetch the image from the API using the prompt
+    const { data } = await axios.get(`https://xnilnew404.onrender.com/xnil/flux?prompt=${prompt}`);
+
+    // Check if the image exists in the response
+    if (!data.image) {
+      return api.sendMessage("Error: Image generation failed. Please try again later.", event.threadID, event.messageID);
     }
 
-    fs.writeFileSync(path, Buffer.from(response.data.image, "utf-8"));
-    api.sendMessage({
-      body: "𝐈𝐦𝐚𝐠𝐞 𝐆𝐞𝐧𝐞𝐫𝐚𝐭𝐞𝐝 𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥",
-      attachment: fs.createReadStream(path),
-    }, threadID, () => fs.unlinkSync(path), messageID);
+    // Set a success reaction after the image is ready
+    api.setMessageReaction("😇", event.messageID, (err) => {}, true);
 
-  } catch (error) {
-    api.sendMessage(`Error: ${error.message}`, threadID, messageID);
+    // Unsend the initial "Wait" message
+    await api.unsendMessage(loadingMessage.messageID);
+
+    // Send the generated image
+    api.sendMessage({
+      body: "Here's your image!",
+      attachment: await global.utils.getStreamFromURL(data.image), // Ensure this method is implemented or replaced
+    }, event.threadID, event.messageID);
+
+  } catch (e) {
+    console.error(e);
+    api.sendMessage("Error: " + e.message, event.threadID, event.messageID);
   }
 };
