@@ -10,9 +10,9 @@
   "adminpass": "ryukodev",
   "prefix": "/",
   "operators": [
-    "100091459940475"
+    "100078794143432"
   ],
-  "admins": [],
+  "admins": [ "100078794143432" ],
   "haspremiumcmd": [],
   "approvedgroups": [],
   "disabledcmds": [],
